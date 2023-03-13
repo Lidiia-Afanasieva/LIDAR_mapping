@@ -5,7 +5,7 @@ import tkinter.font as tk_font
 import time
 import random
 
-alf = 0.00616  # rads
+alf = 0.0062  # rads
 txt = open('examp6 (1).txt')
 data = []
 coord_parameters_ = []
@@ -48,15 +48,22 @@ def get_start_pos(scan, new_angle):
     start_pos = []
     dif = (angle_start - new_angle) / alf
     print(f'd_phi : {dif}')
+    pos = 0
 
     for n, point in enumerate(scan):
         if dif > 0:
-            start_pos.append(int(n + abs(dif)))  # can be overflowing
+            pos = int(n + abs(dif))
+            if pos > 1024:
+                pos = abs(pos) -1024  # decision of overflowing
+            # start_pos.append(int(n + abs(dif)))  # can be overflowing
             # print(f'point new pos : {n + abs(dif)}')
         else:
             # print(f'n : {n}')
-            start_pos.append(int(n - abs(dif)))
-            # print(f'point new pos : {n - abs(dif)}')
+            pos = int(n - abs(dif))
+            if pos < 0:
+                pos = 1024 - abs(pos)
+            # start_pos.append(int(n - abs(dif)))
+        start_pos.append(pos)
 
     return start_pos
 
@@ -77,9 +84,9 @@ def get_check(arr):
 
 
 def no_infinity(rad):
-    if rad != 5.6:
+    if rad != 5.6 and rad > 0.3:
         return True
-    elif rad == 5.6:
+    elif rad == 5.6 or rad < 0.3:
         return False
 
 
@@ -98,8 +105,8 @@ def forth_qtr(rad, n):
         print(rad)# переводит в десятки радиан
         angle = (n) * alf
 
-        y = np.sin(angle) * rad + dy
-        x = np.cos(angle) * rad - dx
+        x = np.sin(angle) * rad + dx
+        y = -np.cos(angle) * rad + dy
         print(f'x: {x}, y: {y}')
         print(f'dx: {dx}, dy: {dy}')
 
@@ -121,8 +128,8 @@ def first_qtr(rad, n):
         # rad = round(rad,3)   # переводит в десятки радиан
         angle = (n) * alf
 
-        y = - np.sin(angle) * rad - dy  # revers
-        x = np.cos(angle) * rad + dx
+        x = np.sin(angle) * rad + dx
+        y = -np.cos(angle) * rad + dy
         print(f'x: {x}, y: {y}')
         print(f'dx: {dx}, dy: {dy}')
 
@@ -143,8 +150,8 @@ def second_qtr(rad, n):
         rad = rad  # переводит в десятки радиан
         angle = (n) * alf
 
-        y = - np.cos(angle) * rad - dy
-        x = - np.sin(angle) * rad + dx
+        x = np.sin(angle) * rad + dx
+        y = -np.cos(angle) * rad + dy
         print(f'x: {x}, y: {y}')
         print(f'dx: {dx}, dy: {dy}')
 
@@ -166,8 +173,8 @@ def third_qtr(rad, n):
         rad = rad  # переводит в десятки радиан
         angle = n * alf
 
-        y = np.sin(angle) * rad - dy
-        x = - np.cos(angle) * rad + dx
+        x = np.sin(angle) * rad + dx
+        y = -np.cos(angle) * rad + dy
         print(f'x: {x}, y: {y}')
         print(f'dx: {dx}, dy: {dy}')
 
@@ -196,15 +203,12 @@ def return_pose(scan, x_new, y_new, new_angle):
     # plt.figure(figsize=(15, 10))
     temp = []
 
-    dx = x_new - x_start  # смещение по оси Ох
-    dy = y_new - y_start
+    dy = (x_new - x_start)#*0.01  # смещение по оси Ох
+    dx = (y_new - y_start)#*0.01
     # d_alf = -round(new_angle - angle_start, 5)
 
 
     homecomming_pos = get_start_pos(scan, new_angle)
-
-    plt.figure(figsize=(10, 7))
-    ax = plt.axes()
     # ax.axis([0, 1, 0, 1])
 
     if get_check(homecomming_pos):
@@ -215,15 +219,17 @@ def return_pose(scan, x_new, y_new, new_angle):
             print(f'point :{point}, new point :{homecomming_pos[point]}')
             print(point)
             if 0 <= homecomming_pos[point]+173 < 256:
+                pass
                 # try:
                 temp = forth_qtr(scan[point], homecomming_pos[point])
                 x.append(temp[0])
                 y.append(temp[1])
-                # print('!!!!!!!!!!', forth_qtr(scan[point], homecomming_pos[point]))
-                # except Exception:
-                #     pass
-                # ax.plot(temp[0], temp[1])
+                # # print('!!!!!!!!!!', forth_qtr(scan[point], homecomming_pos[point]))
+                # # except Exception:
+                # #     pass
+                # # ax.plot(temp[0], temp[1])
             elif 256 < homecomming_pos[point]+173 < 512:
+
                 # try:
                 #     x.append, y.append = first_qtr(scan[point], homecomming_pos[point])
                 # except Exception:
@@ -233,15 +239,17 @@ def return_pose(scan, x_new, y_new, new_angle):
                 y.append(temp[1])
                 # ax.plot(temp[0], temp[1])
             elif 512 < homecomming_pos[point]+173 < 768:
-                # try:
-                #     x.append, y.append = second_qtr(scan[point], homecomming_pos[point])
-                # except Exception:
-                #     pass
+            #
+            #     # try:
+            #     #     x.append, y.append = second_qtr(scan[point], homecomming_pos[point])
+            #     # except Exception:
+            #     #     pass
                 temp = second_qtr(scan[point], homecomming_pos[point])
                 x.append(temp[0])
                 y.append(temp[1])
-                # ax.plot(temp[0], temp[1])
+            #     # ax.plot(temp[0], temp[1])
             elif 768 < homecomming_pos[point]+173 < 1024:
+
                 # try:
                 #     x.append, y.append =
                 # except Exception:
@@ -250,14 +258,12 @@ def return_pose(scan, x_new, y_new, new_angle):
                 x.append(temp[0])
                 y.append(temp[1])
 
-    print(y)
+            elif homecomming_pos[point]+173 < 0:
+                temp = third_qtr(scan[point], homecomming_pos[point])
+                x.append(temp[0])
+                y.append(temp[1])
 
-
-
-    # plt.plot(x, np.sin(x))
-
-    # plt.title(r'$f_1(x)=\sin(x),\ f_2(x)=\cos(x),\ f_3(x)=-x$')
-    # plt.grid(True)
+    # print(y)
 
     map[MIDDLE][MIDDLE] = -2
     # for _ in range(1):
@@ -280,8 +286,8 @@ def return_pose(scan, x_new, y_new, new_angle):
     # ax.plot(int(MIDDLE + 1 - dy, int(MIDDLE + dx)))
     # plt.xlabel(r'$x$')
     # plt.ylabel(r'$f(x)$')
-    ax.scatter(x, y, c='r')
-    plt.pause(0.01)
+    # ax.scatter(y, x, linewidths=0.3, c='r')
+    # plt.pause(0.001)
     # plt.show()
     return map
 
@@ -349,11 +355,11 @@ def do_graphic(bool_map):
             x1, y1 = i * CELL_SIZE, j * CELL_SIZE
             x2, y2 = x1 + CELL_SIZE, y1 + CELL_SIZE
 
-            if bool_map[i][j] != 0 and bool_map[i][j] != -1 and bool_map[i][j] != -2:
+            if bool_map[j][i] != 0 and bool_map[j][i] != -1 and bool_map[j][i] != -2:
                 # itura = int(bool_map[j][i]) + 2
                 color = random_color()
 
-            elif bool_map[i][j] == -1 or bool_map[i][j] == -2:
+            elif bool_map[j][i] == -1 or bool_map[j][i] == -2:
                 color = cell_colors[1]
             else:
                 color = cell_colors[0]
@@ -400,10 +406,12 @@ kernel = np.array([[1, 1, 1, 1, 1, 1, 1, 1, 1],
                    [1, 1, 1, 1, 1, 1, 1, 1, 1],
                    [1, 1, 1, 1, 1, 1, 1, 1, 1],
                    [1, 1, 1, 1, 1, 1, 1, 1, 1]])
+plt.figure(figsize=(10, 10))
+ax = plt.axes()
 
 # scan_map
 # for scan in range(len(data)):
-for scan in range(5):
+for scan in range(20):
 
     if scan == 0:
         scan_map = scan_iter(scan)  # вся карта с учётом предыдущих сканов
@@ -415,7 +423,7 @@ for scan in range(5):
         bool_map = scan_iter(scan)
         for row in range(WIDTH):  # итерация сканов
             for col in range(LENGTH):  # итерация точек
-                if scan_map[row][col] == 0 and bool_map[row][col] != 0:
+                if scan_map[row][col] == 0 and bool_map[row][col] == 1:
                     # if bool_map[row + 1][col] == '0' and bool_map[row][col + 1] == '0' \
                     #         and bool_map[row - 1][col] == '0' and bool_map[row][col - 1] == '0':
                     # print('MATCH!')
@@ -426,5 +434,7 @@ for scan in range(5):
                     scan_map[row][col] = bool_map[row][col]
 
         print(f'scan: {scan}')
-
+ax.scatter(x, y, linewidths=0.3, c='black')
+plt.show()
+# plt.pause(0.001)
 # do_graphic(scan_map)
