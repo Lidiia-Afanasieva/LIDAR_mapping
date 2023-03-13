@@ -1,42 +1,79 @@
 import numpy as np
 import tkinter as tk
+import matplotlib.pyplot as plt
 import tkinter.font as tk_font
 import time
 import random
 
-txt = open('examp_6.txt')
+alf = 0.00616  # rads
+txt = open('examp6 (1).txt')
 data = []
-coord_parameters = []
-
-# for line in txt:
-#     # print(line)
-#     coord_parameters.append(line[:line.find("; ")].split(', '))
-#     data.append(line[line.find("; ") + 2:-1].split(', '))
-#
-# coord_parameters = np.array(coord_parameters, dtype=np.float64)
-# data = np.array(data, dtype=np.float64)
-
-alf = 0.006  # rads
-txt = open('examp_6.txt')
-data = []
-coord_parameters = []
+coord_parameters_ = []
 
 d_alf = 0
 dx = 0
 dy = 0
 minx = 1000
 
+x = []
+y = []
+
+LENGTH = 502
+MIDDLE = 0
+
+map = np.zeros([LENGTH, LENGTH], dtype=int)
+map[MIDDLE][MIDDLE] = -2
+
 for line in txt:
     # print(line)
-    coord_parameters.append(line[:line.find("; ")].split(', '))
+    coord_parameters_.append(line[:line.find("; ")].split(', '))
     data.append(line[line.find("; ") + 2:-1].split(', '))
 
-coord_parameters = np.array(coord_parameters, dtype=np.float64)
+coord_parameters = np.array(coord_parameters_, dtype=np.float64)
 data = np.array(data, dtype=np.float64)
 
 angle_start = coord_parameters[0][2]
 y_start = coord_parameters[0][0]
 x_start = coord_parameters[0][1]
+
+
+def get_start_pos(scan, new_angle):
+    """
+    :param scan:
+    :param new_angle:
+    :return: вернёт массив позиций на полярном скане с учётом смещения
+    смещается по рабочей окружности на длину равную количество радиано-точек в угле
+    при уменьшении угла смещения точка смещается против часовой стрелки, иначе по
+    """
+    start_pos = []
+    dif = (angle_start - new_angle) / alf
+    print(f'd_phi : {dif}')
+
+    for n, point in enumerate(scan):
+        if dif > 0:
+            start_pos.append(int(n + abs(dif)))  # can be overflowing
+            # print(f'point new pos : {n + abs(dif)}')
+        else:
+            # print(f'n : {n}')
+            start_pos.append(int(n - abs(dif)))
+            # print(f'point new pos : {n - abs(dif)}')
+
+    return start_pos
+
+
+def get_check(arr):
+    """
+
+    :param arr: список порядка точек скана
+    :return: проверка выхода за круг
+    """
+    for item in arr:
+        if 0 >= abs(item) > 1024:
+            print(item)
+            print('get_check !FAILED!')
+            return False
+    print('get_check !PASSED!')
+    return True
 
 
 def no_infinity(rad):
@@ -46,172 +83,208 @@ def no_infinity(rad):
         return False
 
 
-def angle_calc(data, x_new, y_new, angle_new):
+def forth_qtr(rad, n):
+    """
+
+    :param rad: порядок точки на полярной окружности со смещением
+    :return:
+    """
+    global map
+
+    if no_infinity(rad):
+        # print(rad)
+        print('FORTH')
+        rad = rad
+        print(rad)# переводит в десятки радиан
+        angle = (n) * alf
+
+        y = np.sin(angle) * rad + dy
+        x = np.cos(angle) * rad - dx
+        print(f'x: {x}, y: {y}')
+        print(f'dx: {dx}, dy: {dy}')
+
+        try:
+            # map[y + MIDDLE][x + MIDDLE] = 1
+            return [x + MIDDLE, y + MIDDLE]
+        except Exception:
+            return [MIDDLE, MIDDLE]
+    else:
+        return [MIDDLE, MIDDLE]
+
+
+def first_qtr(rad, n):
+    global map
+
+    if no_infinity(rad):
+        # print(rad)
+        print('FIRST')
+        # rad = round(rad,3)   # переводит в десятки радиан
+        angle = (n) * alf
+
+        y = - np.sin(angle) * rad - dy  # revers
+        x = np.cos(angle) * rad + dx
+        print(f'x: {x}, y: {y}')
+        print(f'dx: {dx}, dy: {dy}')
+
+        try:
+            # map[y + MIDDLE][x + MIDDLE] = 1
+            return [x + MIDDLE, y + MIDDLE]
+        except Exception:
+            return [MIDDLE, MIDDLE]
+    else:
+        return [MIDDLE, MIDDLE]
+
+
+def second_qtr(rad, n):
+    global map
+
+    if no_infinity(rad):
+        print('SECOND')
+        rad = rad  # переводит в десятки радиан
+        angle = (n) * alf
+
+        y = - np.cos(angle) * rad - dy
+        x = - np.sin(angle) * rad + dx
+        print(f'x: {x}, y: {y}')
+        print(f'dx: {dx}, dy: {dy}')
+
+        try:
+            # map[y + MIDDLE][x + MIDDLE] = 1
+            return [x + MIDDLE, y + MIDDLE]
+        except Exception:
+            return [MIDDLE, MIDDLE]
+    else:
+        return [MIDDLE, MIDDLE]
+
+
+def third_qtr(rad, n):
+    global map
+
+    if no_infinity(rad):
+        # print(rad)
+        print('THIRD')
+        rad = rad  # переводит в десятки радиан
+        angle = n * alf
+
+        y = np.sin(angle) * rad - dy
+        x = - np.cos(angle) * rad + dx
+        print(f'x: {x}, y: {y}')
+        print(f'dx: {dx}, dy: {dy}')
+
+        try:
+            # map[y + MIDDLE][x + MIDDLE] = 1
+            return [x + MIDDLE, y + MIDDLE]
+        except Exception:
+            return [MIDDLE, MIDDLE]
+    else:
+        return [MIDDLE, MIDDLE]
+
+
+def return_pose(scan, x_new, y_new, new_angle):
+    global map
     global d_alf
     global dx
     global dy
     global minx
 
+    global x
+    global y
+
     global angle_start
     global y_start
     global x_start
+    # plt.figure(figsize=(15, 10))
+    temp = []
 
-    lenght = 302
-    middle = 151
-    map = np.zeros([lenght, lenght], dtype=int)
-    map[middle][middle] = -2
+    dx = x_new - x_start  # смещение по оси Ох
+    dy = y_new - y_start
+    # d_alf = -round(new_angle - angle_start, 5)
 
-    dx = round(x_new - x_start, 3) * 10  # смещение по оси Ох
-    dy = round(y_new - y_start, 3) * 10
-    d_alf = -round(angle_new - angle_start, 5)
-    posy = angle_new - angle_start > 0
 
-    # 4th
-    for n, rad in enumerate(data[15:83]):
-        if no_infinity(rad):
-            # print(rad)
-            rad = round(rad, 3) * 10
-            angle = (n + 1) * alf
+    homecomming_pos = get_start_pos(scan, new_angle)
 
-            # смещение угла
-            if posy:
-                angle += d_alf
-            else:
-                angle -= d_alf
+    plt.figure(figsize=(10, 7))
+    ax = plt.axes()
+    # ax.axis([0, 1, 0, 1])
 
-            y = int(round(np.sin(angle) * rad + dy))  # revers
-            # print(f'np.sin(angle) * rad : {np.sin(angle) * rad}')
-            # print(f'np.sin(angle) * rad + dy : {y}')
+    if get_check(homecomming_pos):
 
-            x = int(round(np.cos(angle) * rad - dx))
-            map[y + middle][x + middle] = 1
+        for point in range(len(scan)):
+            # for point in [200,]:
+            #     print(f'point :, type :{type(point)}')
+            print(f'point :{point}, new point :{homecomming_pos[point]}')
+            print(point)
+            if 0 <= homecomming_pos[point]+173 < 256:
+                # try:
+                temp = forth_qtr(scan[point], homecomming_pos[point])
+                x.append(temp[0])
+                y.append(temp[1])
+                # print('!!!!!!!!!!', forth_qtr(scan[point], homecomming_pos[point]))
+                # except Exception:
+                #     pass
+                # ax.plot(temp[0], temp[1])
+            elif 256 < homecomming_pos[point]+173 < 512:
+                # try:
+                #     x.append, y.append = first_qtr(scan[point], homecomming_pos[point])
+                # except Exception:
+                #     pass
+                temp = first_qtr(scan[point], homecomming_pos[point])
+                x.append(temp[0])
+                y.append(temp[1])
+                # ax.plot(temp[0], temp[1])
+            elif 512 < homecomming_pos[point]+173 < 768:
+                # try:
+                #     x.append, y.append = second_qtr(scan[point], homecomming_pos[point])
+                # except Exception:
+                #     pass
+                temp = second_qtr(scan[point], homecomming_pos[point])
+                x.append(temp[0])
+                y.append(temp[1])
+                # ax.plot(temp[0], temp[1])
+            elif 768 < homecomming_pos[point]+173 < 1024:
+                # try:
+                #     x.append, y.append =
+                # except Exception:
+                #     pass
+                temp = third_qtr(scan[point], homecomming_pos[point])
+                x.append(temp[0])
+                y.append(temp[1])
 
-            if x + middle < minx:
-                minx = x + middle
-        else:
-            rad = round(rad, 3) * 10
-            angle = (n + 1) * alf
+    print(y)
 
-            if posy:
-                angle += d_alf
-            else:
-                angle -= d_alf
 
-            y = int(round(np.sin(angle) * rad + dy))  # revers
-            x = int(round(np.cos(angle) * rad - dx))
-            map[y + middle][x + middle] = 0
 
-    # 1st
-    for n, rad in enumerate(data[84:340]):
-        if no_infinity(rad):
-            rad = round(rad, 3) * 10
-            angle = (n + 1) * alf
+    # plt.plot(x, np.sin(x))
 
-            if posy:
-                angle += d_alf
-            else:
-                angle -= d_alf
+    # plt.title(r'$f_1(x)=\sin(x),\ f_2(x)=\cos(x),\ f_3(x)=-x$')
+    # plt.grid(True)
 
-            y = int(round(- np.sin(angle) * rad - dy))  # revers
-            x = int(round(np.cos(angle) * rad + dx))
-            map[y + middle][x + middle] = 1
+    map[MIDDLE][MIDDLE] = -2
+    # for _ in range(1):
+    map[int(MIDDLE + 1 - dy)][int(MIDDLE + dx)] = -1
+    map[int(MIDDLE - 1 - dy)][int(MIDDLE + dx)] = -1
+    map[int(MIDDLE - dy)][int(MIDDLE + 1 + dx)] = -2
+    map[int(MIDDLE - dy)][int(MIDDLE - 1 + dx)] = -2
 
-            if x + middle < minx:
-                minx = x + middle
-        else:
-            rad = round(rad, 3) * 10
-            angle = (n + 1) * alf
+    # ax_p = plt.axes()
+    x_p = [MIDDLE + 1 - dy, MIDDLE - 1 - dy, MIDDLE - dy, MIDDLE - dy]
+    y_p = [MIDDLE + dx, MIDDLE + dx, MIDDLE + 1 + dx, MIDDLE - 1 + dx]
 
-            if posy:
-                angle += d_alf
-            else:
-                angle -= d_alf
+    # ax_p.scatter(x_p, y_p, c='b')
 
-            y = int(round(- np.sin(angle) * rad - dy))  # revers
-            x = int(round(np.cos(angle) * rad + dx))
-            map[y + middle][x + middle] = 0
-
-    # 2rd
-    for n, rad in enumerate(data[341:597]):
-        if no_infinity(rad):
-            rad = round(rad, 3) * 10
-            angle = (n + 1) * alf
-
-            if posy:
-                # print(f'd_alf : {d_alf}')
-                angle += d_alf
-                # print(f'angle : {angle}')
-
-            else:
-                angle -= d_alf
-
-            y = int(round(- np.cos(angle) * rad - dy))
-            x = int(round(- np.sin(angle) * rad + dx))
-            map[y + middle][x + middle] = 1
-
-            if x + middle < minx:
-                minx = x + middle
-        else:
-            rad = round(rad, 3) * 10
-            angle = (n + 1) * alf
-
-            if posy:
-                angle += d_alf
-            else:
-                angle -= d_alf
-
-            y = int(round(- np.sin(angle) * rad - dy))
-            x = int(round(- np.cos(angle) * rad + dx))
-            map[y + middle][x + middle] = 0
-
-    # 3rd
-    for n, rad in enumerate(data[598:-15]):
-        if no_infinity(rad):
-            rad = round(rad, 3) * 10
-            angle = (n + 1) * alf
-
-            if posy:
-                angle += d_alf
-            else:
-                angle -= d_alf
-
-            y = int(round(np.sin(angle) * rad - dy))
-            x = int(round(- np.cos(angle) * rad + dx))
-            map[y + middle][x + middle] = 1
-
-            if x + middle < minx:
-                minx = x + middle
-        else:
-            rad = round(rad, 3) * 10
-            angle = (n + 1) * alf
-
-            if posy:
-                angle += d_alf
-            else:
-                angle -= d_alf
-
-            y = int(round(np.sin(angle) * rad - dy))
-            x = int(round(- np.cos(angle) * rad + dx))
-            map[y + middle][x + middle] = 0
-
-    print(f'd_alf : {d_alf}')
-    print(f'dx : {dx}')
-    print(f'dy : {dy}')
-
-    # for i in range(len(map)):
-    #     for j in range(len(map[i])):
-    #         if len(map[i][j]) == 0: map[i][j] = 0
-
-    map[middle][middle] = -2
-    for _ in range(1):
-        map[int(middle + 1 - dy)][int(middle + dx)] = -1
-        map[int(middle - 1 - dy)][int(middle + dx)] = -1
-        map[int(middle - dy)][int(middle + 1 + dx)] = -2
-        map[int(middle - dy)][int(middle - 1 + dx)] = -2
-
-    # print(minx)
-
+    # ax = plt.axes()
+    # plt.plot(int(MIDDLE + 1 - dy, int(MIDDLE + dx)))
+    # plt.plot(int(MIDDLE - 1 - dy, int(MIDDLE + dx)))
+    # plt.plot(int(MIDDLE - 1 - dy, int(MIDDLE + 1 + dx)))
+    # plt.plot(int(MIDDLE - 1 - dy, int(MIDDLE - 1 + dx)))
+    # ax.plot(int(MIDDLE + 1 - dy, int(MIDDLE + dx)))
+    # plt.xlabel(r'$x$')
+    # plt.ylabel(r'$f(x)$')
+    ax.scatter(x, y, c='r')
+    plt.pause(0.01)
+    # plt.show()
     return map
+
 
 
 def scan_iter(iter):
@@ -239,7 +312,7 @@ def scan_iter(iter):
         y_new = coord_parameters[iter][0]
         x_new = coord_parameters[iter][1]
 
-    bool_map = angle_calc(data[iter], x_new, y_new, angle_new)
+    bool_map = return_pose(data[iter], x_new, y_new, angle_new)
 
     return bool_map
 
@@ -257,7 +330,7 @@ def random_color():
 def do_graphic(bool_map):
     ROOM_LENGTH = len(bool_map[0])  # x
     ROOM_WIDTH = len(bool_map)  # y
-    CELL_SIZE = 4
+    CELL_SIZE = 2
 
     root = tk.Tk()
     root.wm_geometry("+0+0")
@@ -276,11 +349,11 @@ def do_graphic(bool_map):
             x1, y1 = i * CELL_SIZE, j * CELL_SIZE
             x2, y2 = x1 + CELL_SIZE, y1 + CELL_SIZE
 
-            if bool_map[j][i] != 0 and bool_map[j][i] != -1 and bool_map[j][i] != -2:
+            if bool_map[i][j] != 0 and bool_map[i][j] != -1 and bool_map[i][j] != -2:
                 # itura = int(bool_map[j][i]) + 2
                 color = random_color()
 
-            elif bool_map[j][i] == -1 or bool_map[j][i] == -2:
+            elif bool_map[i][j] == -1 or bool_map[i][j] == -2:
                 color = cell_colors[1]
             else:
                 color = cell_colors[0]
@@ -313,17 +386,24 @@ def do_graphic(bool_map):
     
     09.03
     O_y error
+    
+    11.03
+    возврат по точкам
 """
 
-kernel = np.array([[1, 1, 1, 1, 1],
-                   [1, 1, 1, 1, 1],
-                   [1, 1, 0, 1, 1],
-                   [1, 1, 1, 1, 1],
-                   [1, 1, 1, 1, 1]])
+kernel = np.array([[1, 1, 1, 1, 1, 1, 1, 1, 1],
+                   [1, 1, 1, 1, 1, 1, 1, 1, 1],
+                   [1, 1, 1, 1, 1, 1, 1, 1, 1],
+                   [1, 1, 1, 1, 1, 1, 1, 1, 1],
+                   [1, 1, 1, 1, 0, 1, 1, 1, 1],
+                   [1, 1, 1, 1, 1, 1, 1, 1, 1],
+                   [1, 1, 1, 1, 1, 1, 1, 1, 1],
+                   [1, 1, 1, 1, 1, 1, 1, 1, 1],
+                   [1, 1, 1, 1, 1, 1, 1, 1, 1]])
 
 # scan_map
 # for scan in range(len(data)):
-for scan in range(30):
+for scan in range(5):
 
     if scan == 0:
         scan_map = scan_iter(scan)  # вся карта с учётом предыдущих сканов
@@ -338,12 +418,13 @@ for scan in range(30):
                 if scan_map[row][col] == 0 and bool_map[row][col] != 0:
                     # if bool_map[row + 1][col] == '0' and bool_map[row][col + 1] == '0' \
                     #         and bool_map[row - 1][col] == '0' and bool_map[row][col - 1] == '0':
-                        # print('MATCH!')
-                    exhausted = scan_map[row - 2:row + 3, col - 2:col + 3]
-
-                    if np.sum(exhausted * kernel) < 8:
-                        scan_map[row][col] = bool_map[row][col]
+                    # print('MATCH!')
+                    # exhausted = scan_map[row - 2:row + 5, col - 2:col + 5]
+                    #
+                    # if np.sum(exhausted * kernel) < 3:
+                    #     scan_map[row][col] = bool_map[row][col]
+                    scan_map[row][col] = bool_map[row][col]
 
         print(f'scan: {scan}')
 
-do_graphic(scan_map)
+# do_graphic(scan_map)
