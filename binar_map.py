@@ -10,9 +10,9 @@ import matplotlib.pyplot as plt
 from matplotlib import collections as mc
 from collections import deque
 
-col = 50
-row = 50
-OBJ_COUNT = 13
+col = 60
+row = 60
+OBJ_COUNT = 20
 CELL_SIZE = 10
 
 max_speed = 2
@@ -33,62 +33,61 @@ def get_manhattan_distance(p_1, p_2):
     return sum(abs(ord_1 - ord_2) for ord_1, ord_2 in zip(p_1, p_2))
 
 
-def do_graphic(map):
-    global LENGTH  # x
-    global WIDTH  # y
-    global CELL_SIZE
-
-    root = tk.Tk()
-    root.geometry("+700+85")
-    root.configure(bg='#96AFB9', relief='groove')
-    canvas = tk.Canvas()
-
-    canvas = tk.Canvas(root, width=CELL_SIZE * col, height=CELL_SIZE * row, bg='#96AFB9')
-    # canvas.grid(row=4)
-
-    cell_colors = ['black', 'red', 'white', 'blue', 'yellow', 'orange', 'green', 'purple', 'gray', 'brown']
-    ci = 0  # color index
-    color = ''
-
-    for i in range(col):  # bool_map[0]
-        for j in range(row):  # bool_map
-            row1, col1 = i * CELL_SIZE, j * CELL_SIZE
-            row2, col2 = row1 + CELL_SIZE, col1 + CELL_SIZE
-
-            if map.map[j][i] == 1:
-                color = cell_colors[1]
-            elif map.map[j][i] == 2:
-                color = cell_colors[2]
-            elif map.map[j][i] == 3:
-                color = cell_colors[3]
-            elif map.map[j][i] == 4:
-                color = cell_colors[4]
-            elif map.map[j][i] == 5:
-                color = cell_colors[5]
-            else:
-                color = cell_colors[0]
-            if j == map.endpos[0] and i == map.endpos[1]:
-                color = cell_colors[3]
-            elif j == map.startpos[0] and i == map.startpos[1]:
-                color = cell_colors[2]
-
-            canvas.create_rectangle((row1, col1), (row2, col2), fill=color)
-
-    canvas.pack()
-    root.mainloop()
-
-
 class Map:
+
+    def do_graphic(self,):
+        # global self.  # x
+        # global WIDTH  # y
+        global CELL_SIZE
+
+        root = tk.Tk()
+        root.geometry("+700+85")
+        root.configure(bg='#96AFB9', relief='groove')
+        # canvas = tk.Canvas()
+
+        canvas = tk.Canvas(root, width=CELL_SIZE * self.col, height=CELL_SIZE * self.row, bg='#96AFB9')
+        # canvas.grid(row=4)
+
+        cell_colors = ['black', 'red', 'white', 'blue', 'yellow', 'orange', 'green', 'purple', 'gray', 'brown']
+        # ci = 0  # color index
+        # color = ''
+
+        for i in range(self.col):  # bool_map[0]
+            for j in range(self.row):  # bool_map
+                row1, col1 = i * CELL_SIZE, j * CELL_SIZE
+                row2, col2 = row1 + CELL_SIZE, col1 + CELL_SIZE
+
+                if self.map[j][i] == 1:
+                    color = cell_colors[1]
+                elif self.map[j][i] == 2:
+                    color = cell_colors[2]
+                elif self.map[j][i] == 3:
+                    color = cell_colors[3]
+                elif self.map[j][i] == 4:
+                    color = cell_colors[4]
+                elif self.map[j][i] == 5:
+                    color = cell_colors[5]
+                else:
+                    color = cell_colors[0]
+                if j == self.endpos[0] and i == self.endpos[1]:
+                    color = cell_colors[3]
+                elif j == self.startpos[0] and i == self.startpos[1]:
+                    color = cell_colors[2]
+
+                canvas.create_rectangle((row1, col1), (row2, col2), fill=color)
+
+        canvas.pack()
+        root.mainloop()
+
     def set_kuka(self):
         self.map[self.startpos[0]][self.startpos[1]] = 2
         self.map[self.endpos[0]][self.endpos[1]] = 3
 
     def set_obj(self):
-        '''
-
+        """
         :param map_zero: binar np arr
         :return: matrix with obj
-        '''
+        """
         seed(42)
 
         for _ in range(self.obj_count):
@@ -122,11 +121,49 @@ class Map:
         self.obj_count = OBJ_COUNT
 
         self.startpos = (0, 0)
-        self.endpos = (row - 10, col - 10)
+        self.endpos = (self.row - 10, self.col - 10)
 
         self.map = np.zeros([self.row, self.col], dtype=int)
         self.set_obj()
         self.set_kuka()
+
+
+class Graph:
+    def __init__(self, startpos, endpos):
+        self.startpos = startpos
+        self.endpos = endpos
+
+        self.vertices = [startpos]
+        self.edges = []
+        self.path = []
+        self.success = False
+
+        self.vex2idx = {startpos: 0}
+        self.neighbors = {0: []}
+        self.distances = {0: 0.}
+
+        self.sx = endpos[0] - startpos[0]
+        self.sy = endpos[1] - startpos[1]
+
+    def add_vex(self, pos):
+        try:
+            idx = self.vex2idx[pos]  # проверка наличия вершины в этой точке
+        except:
+            idx = len(self.vertices)  # добавляет индекс вершине
+            self.vertices.append(pos)  # добавляет координату вершины в масс верш
+            self.vex2idx[pos] = idx  # обратный поиск координат по вершине
+            self.neighbors[idx] = []  # добавление массива соседей этой вершины
+        return idx  # индекс вершины в графе
+
+    def add_edge(self, idx1, idx2, cost):
+        self.edges.append((idx1, idx2))
+        self.neighbors[idx1].append((idx2, cost))
+        self.neighbors[idx2].append((idx1, cost))
+
+    def random_position(self):  # )
+        posrow = randint(0, row - 2)  # x=50
+        poscol = randint(0, col - 2)  # y=60
+        return posrow, poscol
 
 
 """
@@ -206,44 +243,6 @@ def nearest(G, vex, map):
     return Nvex, Nidx, min_row, min_col
 
 
-class Graph:
-    def __init__(self, startpos, endpos):
-        self.startpos = startpos
-        self.endpos = endpos
-
-        self.vertices = [startpos]
-        self.edges = []
-        self.path = []
-        self.success = False
-
-        self.vex2idx = {startpos: 0}
-        self.neighbors = {0: []}
-        self.distances = {0: 0.}
-
-        self.sx = endpos[0] - startpos[0]
-        self.sy = endpos[1] - startpos[1]
-
-    def add_vex(self, pos):
-        try:
-            idx = self.vex2idx[pos]  # проверка наличия вершины в этой точке
-        except:
-            idx = len(self.vertices)  # добавляет индекс вершине
-            self.vertices.append(pos)  # добавляет координату вершины в масс верш
-            self.vex2idx[pos] = idx  # обратный поиск координат по вершине
-            self.neighbors[idx] = []  # добавление массива соседей этой вершины
-        return idx  # индекс вершины в графе
-
-    def add_edge(self, idx1, idx2, cost):
-        self.edges.append((idx1, idx2))
-        self.neighbors[idx1].append((idx2, cost))
-        self.neighbors[idx2].append((idx1, cost))
-
-    def random_position(self):  # )
-        posrow = randint(0, row - 2)  # x=50
-        poscol = randint(0, col - 2)  # y=60
-        return posrow, poscol
-
-
 def RRT(startpos, endpos, map, n_iter):
     G = Graph(startpos, endpos)
 
@@ -284,13 +283,15 @@ def RRT(startpos, endpos, map, n_iter):
     return G
 
 
-map = Map(row, col, OBJ_COUNT)
-
-rrt_graph = RRT(map.startpos, map.endpos, map.map, 1000)
-for vert in rrt_graph.vertices:
-    map.add_vert(vert[0], vert[1])
-print(rrt_graph.path)
-for path in rrt_graph.path:
-    map.add_path(path[0], path[1])
-
-do_graphic(map)
+discrete_map = Map(row, col, OBJ_COUNT)
+discrete_map.do_graphic()
+"""
+    rrt_graph = RRT(discrete_map.startpos, discrete_map.endpos, discrete_map.map, 1000)
+    for vert in rrt_graph.vertices:
+        discrete_map.add_vert(vert[0], vert[1])
+    print(rrt_graph.path)
+    for path in rrt_graph.path:
+        discrete_map.add_path(path[0], path[1])
+    
+    discrete_map.do_graphic()
+"""
