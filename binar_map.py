@@ -251,10 +251,10 @@ def nearest(G, vex, map):
 
 
 def RRT(startpos, endpos, map, n_iter):
-    G = Graph(startpos, endpos)
+    graph = Graph(startpos, endpos)
 
     for _ in range(n_iter):
-        randvex = G.random_position()
+        randvex = graph.random_position()
         # print(f'randvex: {randvex}')
         # if isInObstacle(randvex, map, radius):
         #     continue
@@ -271,23 +271,23 @@ def RRT(startpos, endpos, map, n_iter):
         # print('/newvex', newvex)
 
         if dcol == 0:
-            G.path.append((nearvex[0] + (drow // 2), nearvex[1] + dcol))
+            graph.path.append((nearvex[0] + (drow // 2), nearvex[1] + dcol))
         elif drow == 0:
-            G.path.append((nearvex[0] + drow, nearvex[1] + (dcol // 2)))
+            graph.path.append((nearvex[0] + drow, nearvex[1] + (dcol // 2)))
         # G.path.append(path_point)
 
-        newidx = G.add_vex(newvex)
+        newidx = graph.add_vex(newvex)
         dist = get_manhattan_distance(newvex, nearvex)
-        G.add_edge(newidx, nearidx, dist)
+        graph.add_edge(newidx, nearidx, dist)
 
-        dist = get_manhattan_distance(newvex, G.endpos)
+        dist = get_manhattan_distance(newvex, graph.endpos)
         if dist < 2:
-            endidx = G.add_vex(G.endpos)
-            G.add_edge(newidx, endidx, dist)
-            G.success = True
+            endidx = graph.add_vex(graph.endpos)
+            graph.add_edge(newidx, endidx, dist)
+            graph.success = True
             print('success')
             break
-    return G
+    return graph
 
 
 # discrete_map = Map(row, col, OBJ_COUNT)
